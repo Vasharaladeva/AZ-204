@@ -1,0 +1,38 @@
+# Module 05 · Containerized Solutions — Local dev with Docker Compose
+# Usage: docker-compose up --build
+#
+# This wires frontend + backend together so you can test
+# the containerised stack locally before pushing to ACR/ACI.
+
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3001'
+    env_file:
+      - ./backend/.env
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3001
+    ports:
+      - '3000:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
